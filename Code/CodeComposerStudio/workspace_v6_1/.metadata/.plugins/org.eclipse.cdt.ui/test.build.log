@@ -1,0 +1,39 @@
+
+**** Build of configuration Debug__GNU for project test ****
+
+"C:\\ti\\ccsv6\\utils\\bin\\gmake" -k all 
+'Building file: ../test.ino'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -g -gdwarf-3 -gstrict-dwarf -Wall -MMD -MP -MF"test.d" -MT"test.d" -o"test.o"  "../test.ino"
+arm-none-eabi-gcc.exe: warning: ../test.ino: linker input file unused because linking not done
+'Finished building: ../test.ino'
+' '
+'Building file: ../tm4c123gh6pm_startup_ccs.c'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -g -gdwarf-3 -gstrict-dwarf -Wall -MMD -MP -MF"tm4c123gh6pm_startup_ccs.d" -MT"tm4c123gh6pm_startup_ccs.d" -o"tm4c123gh6pm_startup_ccs.o"  "../tm4c123gh6pm_startup_ccs.c"
+../tm4c123gh6pm_startup_ccs.c:66:0: warning: ignoring #pragma DATA_SECTION  [-Wunknown-pragmas]
+ #pragma DATA_SECTION(g_pfnVectors, ".intvecs")
+ ^
+C:\Users\Chris\AppData\Local\Temp\ccqyfxzc.s: Assembler messages:
+C:\Users\Chris\AppData\Local\Temp\ccqyfxzc.s:198: Error: unexpected character `w' in type specifier
+C:\Users\Chris\AppData\Local\Temp\ccqyfxzc.s:198: Error: bad instruction `b.w _c_int00'
+gmake: *** [tm4c123gh6pm_startup_ccs.o] Error 1
+'Building file: ../tm4c123gh6pm_startup_ccs_gcc.c'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -g -gdwarf-3 -gstrict-dwarf -Wall -MMD -MP -MF"tm4c123gh6pm_startup_ccs_gcc.d" -MT"tm4c123gh6pm_startup_ccs_gcc.d" -o"tm4c123gh6pm_startup_ccs_gcc.o"  "../tm4c123gh6pm_startup_ccs_gcc.c"
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s: Assembler messages:
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:231: Error: selected processor does not support Thumb mode `it lt'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:232: Error: Thumb does not support conditional execution
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:239: Error: unshifted register required -- `orr r2,r2,#15728640'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:244: Error: lo register required -- `sub sp,fp,#4'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:246: Error: lo register required -- `ldmfd sp!,{fp,lr}'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:268: Error: lo register required -- `str fp,[sp,#-4]!'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:271: Error: lo register required -- `add fp,sp,#0'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:289: Error: lo register required -- `str fp,[sp,#-4]!'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:292: Error: lo register required -- `add fp,sp,#0'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:310: Error: lo register required -- `str fp,[sp,#-4]!'
+C:\Users\Chris\AppData\Local\Temp\ccuQNptn.s:313: Error: lo register required -- `add fp,sp,#0'
+gmake: *** [tm4c123gh6pm_startup_ccs_gcc.o] Error 1
+gmake: Target `all' not remade because of errors.
+
+**** Build Finished ****

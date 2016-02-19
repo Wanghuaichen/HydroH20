@@ -1,0 +1,22 @@
+Turbidity plastic rod
+
+length value difference from prior reading
+4.6cm ~1960, 100
+4.0cm ~1945, 110
+2.5cm ~1940, 120
+
+No rod
+distance value
+touching  1780
+1cm	  1930
+
+Rod wrapped in aluminium foil, wrapped in tape
+
+2.0cm - ~1900, 150
+
+Rod wrapped in aluminum foil, wrapped in tape ---> taped onto LED and OPD
+
+2.0cm ~1900
+
+Thoughts 
+-- Rod may be too wide for LED output. The light may dissipate too much by the time it reaches the detector.

@@ -1,0 +1,95 @@
+/*
+ * Xbee_Test_Node.h
+ *
+ *  Created on: Mar 23, 2013
+ *      Author: Jonathan
+ */
+
+#ifndef XBEE_TEST_NODE_H_
+#define XBEE_TEST_NODE_H_
+
+#include "string.h"
+#include "jsmn.h"
+
+#define RED_LED   GPIO_PIN_1
+#define BLUE_LED  GPIO_PIN_2
+#define GREEN_LED GPIO_PIN_3
+
+#define CO_ADC	GPIO_PIN_3
+#define LPG_ADC GPIO_PIN_2
+#define Alcohol_ADC GPIO_PIN_1
+
+#define ZCROSS_PIN GPIO_PIN_2
+
+#define RTS		  GPIO_PIN_0
+#define CTS		  GPIO_PIN_1
+#define RST		  GPIO_PIN_2
+#define PIR		  GPIO_PIN_3
+#define PWM		  GPIO_PIN_4
+#define DIMMER_PIN	  GPIO_PIN_3
+#define PC_UART   UART0_BASE
+#define XBEE_UART UART1_BASE
+
+void init();
+
+void resetXbee();
+
+void UARTSend();
+
+void UARTSend(unsigned long ulBase, char *pucBuffer, unsigned long ulCount);
+
+void packData(char * messageType, int dataName, int dataType);
+
+int xbeeCM();
+
+int pingReceived();
+
+int readDataReceived();
+
+int registerNodeReceived();
+
+int ACKReceived();
+
+int writeDataReceived();
+
+void makeChecksum();
+
+int checksum();
+
+char * booleanToString(int data);
+
+char * intToString(int data);
+
+char * floatToString(float data);
+
+int stringToInt(char * data);
+
+void xbeeGetAddress();
+
+int xbeeSendCommand(char * data, unsigned long ulCount);
+
+void setServoAngle(int angle);
+
+void updateOccupancy();
+
+void updateTemperature();
+
+void updateBatteryPercent();
+
+void Timer0AIntHandler(void);
+
+int sendToXbee(const char* js);
+
+int getChild(jsmntok_t* tokens, const char* js, char * child, char * parent, char ** result);
+
+void initTokens(jsmntok_t* tokens);
+
+int characterFromHex(char data);
+
+void sendRegistration();
+
+void updateGasPPM();
+
+void setDimmerValue(int ulDimmer, int ulValue);
+
+#endif /* XBEE_TEST_NODE_H_ */

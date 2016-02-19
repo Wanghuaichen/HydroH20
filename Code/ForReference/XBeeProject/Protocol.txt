@@ -1,0 +1,52 @@
+General Packet = [SynchFrame][Length][PAN][SenderAddr][RecieverAddr][PacketID][PacketType][OptionalData][CHECKSUM] >= 28 bytes
+
+Read Packet = [SynchFrame][Length][PAN][SenderAddr][RecieverAddr][PacketID][RD][DATATYPE][IDENTIFIER][VALUE][CHECKSUM] = 44 bytes
+
+Write Packet = [SynchFrame][Length][PAN][SenderAddr][RecieverAddr][PacketID][WD][DATATYPE][IDENTIFIER][VALUE][CHECKSUM] = 44 bytes
+
+Acknowledge Packet = [SynchFrame][Length][PAN][SenderAddr][ReceiverAddr][PacketID][AK][AckPacketID][CHECKSUM] = 30 bytes
+
+Register New Node Packet = [SynchFrame][Length][PAN][SenderAddr][ReceiverAddr][PacketID][RN][CHECKSUM] = 28 bytes
+
+
+
+SynchFrame = "1499"
+
+Length = number of bytes in packet, 16-bit
+
+PAN = Personal Area Network ID, 16-bit
+
+SenderAddr = Address of Sender (Serial Number for node, 0 for Coordinator), 128-bit
+
+ReceiverAddr = Address of Sender (Serial Number for node, 0 for Coordinator), 128-bit
+
+PacketID = Counter for number of sent packets(incremented by sender), 16-bit
+
+PacketType = Identifier for the type of packet, 16-bit
+
+Checksum = Checksum for the rest of the packet, 16-bit
+
+DataType = Identifier for the type of data(int, string, double, etc), 8-bit
+	0 = Boolean
+	1 = Integer
+	2 = Double
+	3 = Float
+	4 = Char array
+
+Identifier = Name for the particular data value(temp, LPG%, etc), 11 char string, fill spaces.
+
+Value = Actual data, 32-bits
+
+AckPacketID = Packet ID of the packet being acknowledged, 16-bit
+
+RD = 'RD'
+
+WD = 'WD'
+
+AK = 'AK'
+
+RN = 'RN'
+
+
+
+Most significant (leftmost) byte always sent first.

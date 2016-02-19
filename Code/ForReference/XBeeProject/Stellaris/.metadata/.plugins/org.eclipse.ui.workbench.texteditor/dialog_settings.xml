@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item value="305" key="DIALOG_WIDTH"/>
+		<item value="231" key="DIALOG_Y_ORIGIN"/>
+		<item value="442" key="DIALOG_HEIGHT"/>
+		<item value="655" key="DIALOG_X_ORIGIN"/>
+		<item value="1|Segoe UI|9.0|0|WINDOWS|1|-15|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI" key="DIALOG_FONT_NAME"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="true" key="wrap"/>
+		<item value="false" key="isRegEx"/>
+		<item value="true" key="casesensitive"/>
+		<item value="false" key="incremental"/>
+		<item value="false" key="wholeword"/>
+		<item value="bytes" key="selection"/>
+		<list key="findhistory">
+			<item value="data_bytes"/>
+			<item value="stringToInt"/>
+			<item value="data_name"/>
+			<item value="&quot;data_name&quot;"/>
+			<item value="init"/>
+			<item value="GPIO_PORTA_BASE, DIMMER_PIN"/>
+			<item value="DIMMER_PIN"/>
+			<item value="DIMMER"/>
+		</list>
+		<list key="replacehistory">
+			<item value="bytes"/>
+			<item value="name"/>
+			<item value="&quot;name&quot;"/>
+			<item value="GPIO_PORTD_BASE, DIMMER_PIN"/>
+			<item value="DIMMER_PIN"/>
+			<item value="ALCOHOL_PPM_IDENTIFIER"/>
+			<item value="CO_PPM_IDENTIFIER"/>
+			<item value="lpg_ppm"/>
+		</list>
+	</section>
+</section>

@@ -1,0 +1,30 @@
+
+**** Build of configuration Debug__GNU for project HellWorld ****
+
+"C:\\ti\\ccsv6\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -mcpu=cortex-m4 -march=armv7e-m -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DPART_TM4C123GH6PM -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -ffunction-sections -fdata-sections -g -gdwarf-3 -gstrict-dwarf -Wall -MD -std=c99 -c -MMD -MP -MF"main.d" -MT"main.d" -o"main.o"  "../main.c"
+../main.c: In function 'main':
+../main.c:5:2: warning: implicit declaration of function 'print' [-Wimplicit-function-declaration]
+  print("Hello, world!!!!!!!!");
+  ^
+'Finished building: ../main.c'
+' '
+'Building file: ../tm4c123gh6pm_startup_ccs_gcc.c'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -mcpu=cortex-m4 -march=armv7e-m -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DPART_TM4C123GH6PM -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -ffunction-sections -fdata-sections -g -gdwarf-3 -gstrict-dwarf -Wall -MD -std=c99 -c -MMD -MP -MF"tm4c123gh6pm_startup_ccs_gcc.d" -MT"tm4c123gh6pm_startup_ccs_gcc.d" -o"tm4c123gh6pm_startup_ccs_gcc.o"  "../tm4c123gh6pm_startup_ccs_gcc.c"
+'Finished building: ../tm4c123gh6pm_startup_ccs_gcc.c'
+' '
+'Building target: HellWorld.out'
+'Invoking: GNU Linker'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -march=armv7e-m -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DPART_TM4C123GH6PM -ffunction-sections -fdata-sections -g -gdwarf-3 -gstrict-dwarf -Wall -Wl,-Map,"HellWorld.map" -o"HellWorld.out" "./main.o" "./tm4c123gh6pm_startup_ccs_gcc.o" -Wl,-T"../tm4c123gh6pm.lds"  -Wl,--start-group -l"c" -Wl,--end-group 
+./main.o: In function `main':
+C:\Users\Chris\workspace_v6_1\HellWorld\Debug__GNU/../main.c:5: undefined reference to `print'
+c:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/../lib/gcc/arm-none-eabi/4.8.4/../../../../arm-none-eabi/lib/armv7e-m/fpu\libc.a(lib_a-exit.o): In function `exit':
+exit.c:(.text.exit+0x16): undefined reference to `_exit'
+collect2.exe: error: ld returned 1 exit status
+gmake: *** [HellWorld.out] Error 1
+gmake: Target `all' not remade because of errors.
+
+**** Build Finished ****

@@ -1,0 +1,100 @@
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Please place 1.100000 NTU Standard into holder then type "ok": 
+Calibrating...
+Turbidity Value (ADC) is: 948.40
+Please place 10.000000 NTU Standard into holder then type "ok": 
+Calibrating...
+Turbidity Value (ADC) is: 971.39
+Please place 20.000000 NTU Standard into holder then type "ok": 
+Calibrating...
+Turbidity Value (ADC) is: 906.16
+Please place 100.000000 NTU Standard into holder then type "ok": 
+Calibrating...
+Turbidity Value (ADC) is: 787.98
+Please place 800.000000 NTU Standard into holder then type "ok": 
+Calibrating...
+Turbidity Value (ADC) is: 223.49
+y[2] = 984.301758
+m[1] = 2.582813 
+y[4] = 983.643494
+m[2] = 2.582813 
+y[6] = 1821.101562
+m[3] = 2.582813 
+y[8] = 1256.611938
+m[4] = 2.582813 
+Turbidity configuration:
+1.100000 NTU: y0: 948.400696, m0: 0.387175, b0: -366.097382
+10.000000 NTU: y1: 984.301758, m1: 0.387175, b1: -366.096863
+20.000000 NTU: y2: 983.643494, m2: 0.387175, b2: -330.842010
+100.000000 NTU: y3: 1821.101562, m3: 0.387175, b3: -205.084656
+800.000000 NTU: y4: 1256.611938, m4: 0.387175, b4: 713.471497
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Turbidity Value (ADC) is: 222.72
+Raw reading is: 222.719254
+Turbidity Value (NTU) is: -279.87
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Turbidity Value (ADC) is: 968.24
+Raw reading is: 968.242737
+Turbidity Value (NTU) is: 8.78
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Turbidity Value (ADC) is: 974.45
+Raw reading is: 974.452881
+Turbidity Value (NTU) is: 11.19
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Turbidity Value (ADC) is: 970.89
+Raw reading is: 970.887695
+Turbidity Value (NTU) is: 9.81
+--------------
+H20Spy v.0.0.1
+--------------
+What would you like to do?
+1. Read Temperature
+2. Read Conductivity
+3. Read Turbidity
+4. Calibrate Turbidity
+Turbidity Value (ADC) is: 974.09
+Raw reading is: 974.090515
+Turbidity Value (NTU) is: 11.05

@@ -1,0 +1,1 @@
+"./tm4c123gh6pm_startup_ccs.o" "./tm4c123gh6pm_startup_ccs_gcc.o" "./test.o" -Wl,--start-group -l"c" -Wl,--end-group 

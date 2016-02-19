@@ -1,0 +1,135 @@
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1207: warning #1132-D: returning pointer to local variable
+"../main.c", line 1225: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+gmake: Nothing to be done for `all'.
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1209: warning #1132-D: returning pointer to local variable
+"../main.c", line 1227: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1209: warning #1132-D: returning pointer to local variable
+"../main.c", line 1227: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1209: warning #1132-D: returning pointer to local variable
+"../main.c", line 1227: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+gmake: Nothing to be done for `all'.
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+gmake: Nothing to be done for `all'.
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1209: warning #1132-D: returning pointer to local variable
+"../main.c", line 1227: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project Stellaris_Xbee_Node ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare/boards/ek-lm4f120xl" --include_path="C:/StellarisWare" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"../main.c", line 1209: warning #1132-D: returning pointer to local variable
+"../main.c", line 1227: warning #1132-D: returning pointer to local variable
+'Finished building: ../main.c'
+' '
+'Building target: Stellaris_Xbee_Node.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -g --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --diag_wrap=off -z --stack_size=256 -m"Stellaris_Xbee_Node.map" --heap_size=0 -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/lib" -i"C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --rom_model -o "Stellaris_Xbee_Node.out"  "./main.obj" "./jsmn.obj" "./I2C_Stellaris_API.obj" -l"libc.a" -l"C:\StellarisWare\usblib\ccs-cm4f\Debug\usblib-cm4f.lib" -l"C:\StellarisWare\driverlib\ccs-cm4f\Debug\driverlib-cm4f.lib" "../lm4f120h5qr.cmd" 
+<Linking>
+'Finished building target: Stellaris_Xbee_Node.out'
+' '
+
+**** Build Finished ****

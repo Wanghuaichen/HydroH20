@@ -1,0 +1,20 @@
+
+**** Build of configuration Debug for project Testme ****
+
+"C:\\ti\\ccsv6\\utils\\bin\\gmake" -k all 
+'Building file: Testme.cpp'
+'Invoking: GNU Compiler'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -c -mcpu=cortex-m4 -march=armv7e-m -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fno-exceptions -DF_CPU=80000000L -DARDUINO=101 -DENERGIA=13 -I"C:/Program Files/Energia/hardware/lm4f/cores/lm4f" -I"C:/Program Files/Energia/hardware/lm4f/variants/stellarpad" -I"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/arm-none-eabi/include" -I"C:/Users/Chris/workspace_v6_1/Testme" -Os -ffunction-sections -fdata-sections -fsingle-precision-constant -g -gdwarf-3 -gstrict-dwarf -Wall -MMD -MP -MF"Testme.d" -MT"Testme.d" -fno-rtti -o"Testme.o"  "Testme.cpp"
+'Finished building: Testme.cpp'
+' '
+'Building target: Testme.out'
+'Invoking: GNU Linker'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-gcc.exe" -march=armv7e-m -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fno-exceptions -DF_CPU=80000000L -DARDUINO=101 -DENERGIA=13 -Os -ffunction-sections -fdata-sections -fsingle-precision-constant -g -gdwarf-3 -gstrict-dwarf -Wall --entry ResetISR -nostartfiles -nostdlib -Wl,--gc-sections -L"C:/Users/Chris/workspace_v6_1/lptm4c1230c3pm_core/Debug" -o"Testme.out" "./Testme.o"  -Wl,--start-group -Wl,-T"C:/Program Files/Energia/hardware/lm4f/cores/lm4f/lm4fcpp_blizzard.ld" -l"lptm4c1230c3pm_core" -l"m" -l"c" -l"gcc" -Wl,--end-group 
+'Finished building target: Testme.out'
+' '
+'Invoking: GNU Objcopy Utility'
+"C:/ti/ccsv6/tools/compiler/gcc-arm-none-eabi-4_8-2014q3/bin/arm-none-eabi-objcopy.exe" -O binary  "Testme.out"  "Testme.bin"
+'Finished building: Testme.bin'
+' '
+
+**** Build Finished ****

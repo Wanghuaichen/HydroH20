@@ -1,0 +1,14 @@
+XBEE NETWORKING
+==================
+
+- Series 1 ( what we have ) cannot create a meshed network, unfortunately. 
+However, we can create a point-to-point network were a device asks the logging device for data, and receives it.
+--Logger
+---collects data, calculates  values -> saves to SD card
+---Waits for signal from receiver requesting data
+---Sends data values to xbee, transmits to receiver as JSON string
+
+--Receiver
+---Scans for devices within the area
+---Upon finding device, prompt user to collect data
+---Receives/parses JSON response into data file (CSV)

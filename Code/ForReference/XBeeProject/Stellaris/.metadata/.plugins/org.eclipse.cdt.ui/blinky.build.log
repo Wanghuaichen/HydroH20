@@ -1,0 +1,19 @@
+
+**** Build of configuration Debug for project blinky ****
+
+"C:\\ti\\ccsv5\\utils\\bin\\gmake" -k all 
+gmake: ../blinky.c: Timestamp out of range; substituting 1969-12-31 19:00:00
+'Building file: ../blinky.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv5/tools/compiler/arm_5.0.1/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -O2 -g --include_path="C:/ti/ccsv5/tools/compiler/arm_5.0.1/include" --include_path="C:/StellarisWare" --gcc --define=ccs="ccs" --define=PART_LM4F120H5QR --diag_warning=225 --display_error_number --gen_func_subsections=on --ual --preproc_with_compile --preproc_dependency="blinky.pp"  "../blinky.c"
+Terminate batch job (Y/N)? 
+^Cgmake: *** [blinky.obj] Interrupt
+
+**** Build of configuration Debug for project blinky ****
+
+!CommandLauncher.error.commandCanceled!
+Error: Program "C:/ti/ccsv5/utils/bin/gmake" is not found in PATH
+
+PATH=[C:/ti/ccsv5/eclipse/jre/bin/client;C:/ti/ccsv5/eclipse/jre/bin;C:/ti/ccsv5/eclipse/jre/lib/i386;%CommonProgramFiles%\Microsoft Shared\Windows Live;C:\Program Files (x86)\PC Connectivity Solution\;C:\Windows\SYSTEM32;C:\Windows;C:\Windows\SYSTEM32\WBEM;C:\Windows\SYSTEM32\WINDOWSPOWERSHELL\V1.0\;C:\PROGRAM FILES (X86)\ATI TECHNOLOGIES\ATI.ACE\CORE-STATIC;;C:\Program Files\WIDCOMM\Bluetooth Software\;C:\Program Files\WIDCOMM\Bluetooth Software\syswow64;c:\altera\12.1\quartus\bin;C:\android-sdk-windows\tools\C:\Program%20Files%20(x86)\Java;C:\Program Files (x86)\Common Files\Teleca Shared;C:\Program Files (x86)\QuickTime\QTSystem\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Program Files\Common Files\Microsoft Shared\Windows Live;C:\Modeltech_pe_edu_10.0c\win32pe_edu;C:\Program Files (x86)\GmoteServer\bin\vlc;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Program Files\Java\jre7\bin;c:\altera\12.1\modelsim_ase\win32aloem;c:\Python27\;C:\ti\ccsv5\eclipse;]
+
+**** Build Finished ****

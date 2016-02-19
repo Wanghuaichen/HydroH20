@@ -1,0 +1,1709 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/uart.h"
+#include "utils/uartstdio.h"
+#include "driverlib/gpio.h"
+#include "inc/lm4f120h5qr.h"
+#include <driverlib/pin_map.h>
+#include "driverlib/debug.h"
+#include "driverlib/fpu.h"
+#include "driverlib/rom.h"
+#include "driverlib/adc.h"
+#include "driverlib/timer.h"
+#include "driverlib/interrupt.h"
+#include "inc/hw_ints.h"
+#include "jsmn.h"
+#include "Xbee_Test_Node.h"
+#include "I2C_Stellaris_API.h"
+#include <string.h>
+#include <math.h>
+
+#define F_CPU 16000000
+#define TEMP_IC_ADDR 0x48
+#define TEMP_REG_ADDR 0
+
+#define NUMTOKENS 30
+
+#define FRAME_SYNCH "1499"
+#define SEND_ADDR_OFFSET 8
+#define RECV_ADDR_OFFSET 15
+#define PACKET_ID_OFFSET 22
+#define PACKET_TYPE_OFFSET 24
+#define DATATYPE_OFFSET 26
+#define IDENTIFIER_OFFSET 27
+#define VALUE_OFFSET 38
+
+#define OCCUPANCY_IDENTIFIER 0
+#define TEMPERATURE_IDENTIFIER 1
+#define SERVO_ANGLE_IDENTIFIER 2
+#define CO_PPM_IDENTIFIER 3
+#define LPG_PPM_IDENTIFIER 4
+#define ALCOHOL_PPM_IDENTIFIER 5
+#define BATTERY_PERCENT_IDENTIFIER 6
+#define ADDRESS_IDENTIFIER 7
+#define DIMMER_1_IDENTIFIER 8
+#define DIMMER_2_IDENTIFIER 9
+
+#define BOOLEAN_IDENTIFIER 0
+#define INTEGER_IDENTIFIER 1
+#define FLOAT_IDENTIFIER 2
+#define STRING_IDENTIFIER 3
+
+int ulPeriod = 1000;
+int dutyCycle = 0;
+int minDutyCycle = 0;
+int maxDutyCycle = 0;
+int lowPulse = 0;
+int lowPulseDimmer = 0;
+int highPulse = 0;
+int highPulseDimmer = 0;
+int pwmState = 0;
+int dimmerState = 0;
+int ZCrossDelay = 0;
+short ZCrossWaiting = 0;
+
+unsigned long g_ulFlags;
+
+#define HVAC_DEVICE 0
+#define POWER_DEVICE 1
+#define GAS_DEVICE 2
+#define DEVICE_TYPE HVAC_DEVICE
+
+const int device = DEVICE_TYPE;
+
+#define FLOWTHROUGH_TEST 1
+#define ECHO_TEST 2
+#define TO_COORDINATOR_TEST 3
+#define PWM_TEST 4
+#define PIR_TEST 5
+#define I2C_TEST 6
+#define STANDALONE_TEST 7
+#define REGISTER_NODE_TEST 8
+#define GAS_TEST 9
+#define BATTERY_TEST 10
+#define POWER_TEST 11
+#define MISC_TEST 12
+
+#define PAN_ID "1337"
+#define TEST_TYPE TO_COORDINATOR_TEST
+
+const int test = TEST_TYPE;
+
+const char frameSynch[4] = FRAME_SYNCH;
+
+char SL[9] = "409ACCD8\0";
+char SH[9] = "0013A200\0";
+
+int a = 0;
+int frameSize = 0;
+char frame[8];
+char jsonFrame[1024];
+int frameReady = 0;
+int frameFail = 0;
+int packetLength = 0;
+//char * packetType = "FU\0";
+short myPacketID = 0;
+short connected = 0;
+int pingCounter = 0;
+
+int servo_angle = 90;
+int dimmer_1_percent = 0;
+int dimmer_2_percent = 0;
+int occupancy = 0;
+float co_ppm = 0;
+float lpg_ppm = 0;
+float alcohol_ppm = 0;
+float battery_percent = 0;
+float fahrenheit = 0;
+float celcius = 0;
+
+unsigned long ulADC0Value[3];
+
+char *js;
+int r;
+jsmn_parser p;
+jsmntok_t tokens[NUMTOKENS];
+
+unsigned mainLoopCounter = 0;
+unsigned secondaryLoopCounter = 0;
+
+int main(){
+
+	init();
+    resetXbee();
+
+    UARTSend(PC_UART, "\r\n\r\nANURA NODE TEST\r\n", 21);
+	GPIOPinWrite(GPIO_PORTF_BASE, GREEN_LED|RED_LED|BLUE_LED, GREEN_LED);
+
+	if(test == FLOWTHROUGH_TEST){
+        while(1){
+    		GPIOPinWrite(GPIO_PORTF_BASE, BLUE_LED, 0);
+        	if(UARTCharsAvail(PC_UART)){
+        		GPIOPinWrite(GPIO_PORTF_BASE, BLUE_LED, BLUE_LED);
+        		GPIOPinWrite(GPIO_PORTD_BASE, RTS, !RTS);
+        		while(GPIOPinRead(GPIO_PORTD_BASE, CTS) == CTS);
+                UARTCharPut(XBEE_UART, UARTCharGet(PC_UART));
+        		GPIOPinWrite(GPIO_PORTD_BASE, RTS, RTS);
+        	}
+        	if(UARTCharsAvail(XBEE_UART)){
+        		GPIOPinWrite(GPIO_PORTF_BASE, BLUE_LED, BLUE_LED);
+        		UARTCharPut(PC_UART, UARTCharGet(XBEE_UART));
+        	}
+        }
+    }else if(test == ECHO_TEST){
+        while(1){
+        	if(UARTCharsAvail(XBEE_UART)){
+        		GPIOPinWrite(GPIO_PORTD_BASE, RTS, !RTS);
+        		while(GPIOPinRead(GPIO_PORTD_BASE, CTS) == CTS);
+                UARTCharPut(XBEE_UART, UARTCharGet(XBEE_UART));
+        		GPIOPinWrite(GPIO_PORTD_BASE, RTS, RTS);
+        	}
+        	if(UARTCharsAvail(PC_UART)){
+        		UARTCharPut(PC_UART, UARTCharGet(PC_UART));
+        	}
+        }
+    }else if(test == TO_COORDINATOR_TEST){
+        if(!xbeeCM())UARTSend(PC_UART, "Failed to enter Command Mode!\r\n", 31);
+        else UARTSend(PC_UART, "Entered Command Mode!\r\n", 23);
+        if(!xbeeSendCommand("ATDH000000\r", 11))UARTSend(PC_UART, "Failed to set DH!\r\n", 19);
+        else UARTSend(PC_UART, "Set DH!\r\n", 9);
+        if(!xbeeSendCommand("ATDL00000000\r", 13))UARTSend(PC_UART, "Failed to set DL!\r\n", 19);
+        else UARTSend(PC_UART, "Set DL!\r\n", 9);
+        xbeeGetAddress();
+        if(!xbeeSendCommand("ATCN\r", 5))UARTSend(PC_UART, "Failed to exit Command Mode!\r\n", 30);
+        else UARTSend(PC_UART, "Exited Command Mode!\r\n", 22);
+    	SysCtlDelay(F_CPU);
+
+        UARTSend(PC_UART, "My Address: ", 12);
+        UARTSend(PC_UART, SH, 8);
+        UARTSend(PC_UART, SL, 8);
+        UARTSend(PC_UART, "\r\n", 2);
+
+    	frameSize = 0;
+
+		UARTSend(PC_UART, "Connecting...\r\n", 15);
+
+    	sendRegistration();
+    	pingCounter = 0;
+
+        while(1){
+        	if(mainLoopCounter < (F_CPU/100)){ //Roughly 1s counter
+        		mainLoopCounter++;
+        	}else{
+        		mainLoopCounter = 0;
+        		secondaryLoopCounter++;
+        		pingCounter++;
+        		if(device == GAS_DEVICE){
+        			updateGasPPM();
+        			if(lpg_ppm > 100){
+        				packData("WD", LPG_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        				sendToXbee(jsonFrame);
+        			}
+        			if(co_ppm > 100){
+        				packData("WD", CO_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        				sendToXbee(jsonFrame);
+        			}
+        			if(alcohol_ppm > 100){
+        				packData("WD", ALCOHOL_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        				sendToXbee(jsonFrame);
+        			}
+        		}
+        	}
+
+        	if(secondaryLoopCounter > 1*60){ //Update every 3 minutes
+        		updateBatteryPercent();
+        		if(device == GAS_DEVICE){
+        			updateGasPPM();
+        			packData("WD", CO_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        			packData("WD", LPG_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        			packData("WD", ALCOHOL_PPM_IDENTIFIER, INTEGER_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        		}
+        		if(device == HVAC_DEVICE){
+        			updateTemperature();
+        			updateOccupancy();
+        			packData("WD", OCCUPANCY_IDENTIFIER, BOOLEAN_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        			packData("WD", TEMPERATURE_IDENTIFIER, FLOAT_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        			packData("WD", SERVO_ANGLE_IDENTIFIER, INTEGER_IDENTIFIER);
+        			sendToXbee(jsonFrame);
+        		}
+        		if(device == POWER_DEVICE){
+        			packData("WD", DIMMER_1_IDENTIFIER, INTEGER_IDENTIFIER);
+					sendToXbee(jsonFrame);
+					UARTSend(PC_UART, "Sending DIMMER1\r\n", 17);
+					packData("WD", DIMMER_2_IDENTIFIER, INTEGER_IDENTIFIER);
+					sendToXbee(jsonFrame);
+					UARTSend(PC_UART, "Sending DIMMER2\r\n", 17);
+        		}
+        		packData("WD", BATTERY_PERCENT_IDENTIFIER, FLOAT_IDENTIFIER);
+        		sendToXbee(jsonFrame);
+        		UARTSend(PC_UART, "Updating...\r\n", 13);
+        		secondaryLoopCounter = 0;
+        	}
+
+        	if(pingCounter > 10*60){ // ~10 mins without a ping
+        		UARTSend(PC_UART, "Reconnecting...\r\n", 17);
+        		sendRegistration();
+        		pingCounter = 0;
+        	}
+
+        	if(!frameReady && !frameFail){
+        		if(UARTCharsAvail(XBEE_UART)){
+        			if(frameSize < sizeof(int)){ //Check synchframe
+        				frame[frameSize] = UARTCharGet(XBEE_UART);
+        				if(frame[frameSize] == frameSynch[frameSize]){
+        					frameSize++;
+        				}else{
+        					frameSize = 0;
+        				}
+        			}
+					else if(frameSize < sizeof(int)+sizeof(char)*3){ //Lower 3 bytes of LENGTH
+						frame[frameSize] = UARTCharGet(XBEE_UART);
+						frameSize++;
+					}
+					else if(frameSize < sizeof(int)*2){ //all of LENGTH found
+						frame[frameSize] = UARTCharGet(XBEE_UART);
+						packetLength = (frame[4] << 24) + (frame[5] << 16) + (frame[6] << 8) + frame[7]; //assuming 32 bit aka 4 chars=int
+						frameSize++;
+					}
+					else if (frameSize < (packetLength + (sizeof(int)*2-1))){ //for the length of the frame
+						jsonFrame[frameSize-8] = UARTCharGet(XBEE_UART);
+						frameSize++;
+					}else if (frameSize < (packetLength + (sizeof(int)*2))){
+						jsonFrame[frameSize-8] = UARTCharGet(XBEE_UART);
+						jsonFrame[frameSize-7] = '\0'; //put null terminating char at the end
+						frameReady = 1;
+					}
+        		}
+        	}
+
+        	//If a frame has been received
+        	if(frameReady){
+        		//Decipher packet type
+                initTokens(tokens);
+        		jsmn_init(&p);
+                r = jsmn_parse(&p, jsonFrame, tokens, NUMTOKENS);
+                if(r == JSMN_SUCCESS){
+					UARTSend(PC_UART, "Packet Received\r\n", 17);
+					UARTSend(PC_UART, jsonFrame, strlen(jsonFrame));
+					UARTSend(PC_UART, "\r\n", 2);
+
+					char packetType[3];
+			        r = getChild(tokens, jsonFrame, "type", "message", packetType);
+
+			        if(r){
+			        	UARTSend(PC_UART, "Packet Type: ", 13);
+			        	UARTSend(PC_UART, packetType, 2);
+			        	UARTSend(PC_UART, "\r\n", 2);
+						//Hand off packet types to packet handlers.
+						switch(packetType[0]){
+							case 'R':
+								switch(packetType[1]){
+									case 'D':
+										UARTSend(PC_UART, "RD Packet\r\n", 11);
+										readDataReceived();
+										break;
+									case 'N':
+										UARTSend(PC_UART, "RN Packet\r\n", 11);
+										registerNodeReceived();
+										break;
+									default:
+										break;
+								}
+								break;
+							case 'A':
+								switch(packetType[1]){
+									case 'K':
+										UARTSend(PC_UART, "AK Packet\r\n", 11);
+										ACKReceived();
+										break;
+									default:
+										break;
+								}
+								break;
+							case 'W':
+								switch(packetType[1]){
+									case 'D':
+										UARTSend(PC_UART, "WD Packet\r\n", 11);
+										writeDataReceived();
+										break;
+									default:
+										break;
+								}
+								break;
+							case 'P':
+								switch(packetType[1]){
+									case 'N':
+										UARTSend(PC_UART, "PN Packet\r\n", 11);
+										pingCounter = 0;
+										pingReceived();
+										break;
+									default:
+										break;
+								}
+								break;
+							default:
+								UARTSend(PC_UART, "Unknown Packet Type\r\n", 21);
+								break;
+						}
+					}else{
+						UARTSend(PC_UART, "No Child!\r\n", 11);
+					}
+	        		frameReady = 0;
+	        		frameSize = 0;
+	        		frameFail = 0;
+                }else{
+                	frameReady = 0;
+                	frameFail = 1;
+                }
+        	}
+        	if(frameFail){
+        		UARTSend(PC_UART, "Failed Packet\r\n", 15);
+        		//Send failure notice?
+        		frameSize = 0;
+        		frameFail = 0;
+        	}
+        }
+    }else if(test == PWM_TEST){
+		int toAdd = 0;
+		while(1){
+			if(UARTCharsAvail(PC_UART)){
+				a = UARTCharGet(PC_UART);
+				switch(a){
+					case '0':
+						toAdd = 0;
+						break;
+					case '1':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.1;
+						break;
+					case '2':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.2;
+						break;
+					case '3':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.3;
+						break;
+					case '4':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.4;
+						break;
+					case '5':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.5;
+						break;
+					case '6':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.6;
+						break;
+					case '7':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.7;
+						break;
+					case '8':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.8;
+						break;
+					case '9':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.9;
+						break;
+					case '-':
+						toAdd = (maxDutyCycle-minDutyCycle);
+						break;
+					default:
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.5;
+				}
+				dutyCycle = minDutyCycle + toAdd;
+				highPulse = dutyCycle;
+				lowPulse = ulPeriod - dutyCycle;
+			}
+		}
+    }else if(test == PIR_TEST){
+    	while(1){
+    		if(GPIOPinRead(GPIO_PORTD_BASE, PIR) == PIR){
+            	GPIOPinWrite(GPIO_PORTF_BASE, BLUE_LED, BLUE_LED);
+    		}else{
+    			GPIOPinWrite(GPIO_PORTF_BASE, BLUE_LED, 0);
+    		}
+    	}
+    }else if(test == I2C_TEST){
+    	while(1){
+        	SysCtlDelay(F_CPU);
+        	updateTemperature();
+    	}
+    }else if(test == STANDALONE_TEST){
+    	UARTSend(PC_UART, "STANDALONE TEST\r\n\r\n", 19);
+    	int toAdd = 0;
+    	unsigned counter = 0;
+    	while(1){
+    		counter++;
+    		if(counter > (F_CPU/8)){
+    			updateBatteryPercent();
+				UARTSend(PC_UART, "Battery: ", 9);
+				char a = battery_percent / 100;
+				a %= 10;
+				a += 48;
+				char b = battery_percent / 10;
+				b %= 10;
+				b += 48;
+				char c = battery_percent;
+				c %= 10;
+				c += 48;
+				char d = ((int)(battery_percent * 10)) % 10;
+				d += 48;
+				UARTCharPut(PC_UART, a);
+				UARTCharPut(PC_UART, b);
+				UARTCharPut(PC_UART, c);
+				UARTCharPut(PC_UART, '.');
+				UARTCharPut(PC_UART, d);
+				UARTSend(PC_UART, "%\r\n", 3);
+    			counter = 0;
+				updateTemperature();
+				UARTSend(PC_UART, "Temperature: ", 13);
+				a = fahrenheit / 10;
+				a %= 10;
+				a += 48;
+				b = fahrenheit;
+				b %= 10;
+				b += 48;
+				c = ((int)(fahrenheit * 10)) % 10;
+				c += 48;
+				UARTCharPut(PC_UART, a);
+				UARTCharPut(PC_UART, b);
+				UARTCharPut(PC_UART, '.');
+				UARTCharPut(PC_UART, c);
+				UARTSend(PC_UART, "\r\n", 2);
+				UARTSend(PC_UART, "Occupancy: ", 11);
+				if(GPIOPinRead(GPIO_PORTD_BASE, PIR) == PIR){
+					UARTSend(PC_UART, "True", 4);
+				}else{
+					UARTSend(PC_UART, "False", 5);
+				}
+				UARTSend(PC_UART, "\r\n\r\n", 4);
+    		}
+
+    		if(UARTCharsAvail(PC_UART)){
+				a = UARTCharGet(PC_UART);
+				switch(a){
+					case '0':
+						toAdd = 0;
+						break;
+					case '1':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.1;
+						break;
+					case '2':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.2;
+						break;
+					case '3':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.3;
+						break;
+					case '4':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.4;
+						break;
+					case '5':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.5;
+						break;
+					case '6':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.6;
+						break;
+					case '7':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.7;
+						break;
+					case '8':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.8;
+						break;
+					case '9':
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.9;
+						break;
+					case '-':
+						toAdd = (maxDutyCycle-minDutyCycle);
+						break;
+					default:
+						toAdd = (maxDutyCycle-minDutyCycle) * 0.5;
+				}
+				dutyCycle = minDutyCycle + toAdd;
+				highPulse = dutyCycle;
+				lowPulse = ulPeriod - dutyCycle;
+			}
+    	}
+    }else if(test == REGISTER_NODE_TEST){
+
+    	sendRegistration();
+    	while(1);
+
+    }else if(test == GAS_TEST){
+    	while(1){
+			SysCtlDelay(SysCtlClockGet());
+    		updateGasPPM();
+    		UARTSend(PC_UART, "CO: ", 4);
+			char a = (int)co_ppm / 100000;
+			a %= 10;
+			a += 48;
+			char b = (int)co_ppm / 10000;
+			b %= 10;
+			b += 48;
+			char c = (int)co_ppm / 1000;
+			c %= 10;
+			c += 48;
+			char d = (int)co_ppm / 100;
+			d %= 10;
+			d += 48;
+			char e = (int)co_ppm / 10;
+			e %= 10;
+			e += 48;
+			char f = (int)co_ppm % 10;
+			f += 48;
+			UARTCharPut(PC_UART, a);
+			UARTCharPut(PC_UART, b);
+			UARTCharPut(PC_UART, c);
+			UARTCharPut(PC_UART, d);
+			UARTCharPut(PC_UART, e);
+			UARTCharPut(PC_UART, f);
+			UARTSend(PC_UART, "ppm\r\n", 5);
+			UARTSend(PC_UART, "LPG: ", 5);
+			a = (int)lpg_ppm / 100000;
+			a %= 10;
+			a += 48;
+			b = (int)lpg_ppm / 10000;
+			b %= 10;
+			b += 48;
+			c = (int)lpg_ppm / 1000;
+			c %= 10;
+			c += 48;
+			d = (int)lpg_ppm / 100;
+			d %= 10;
+			d += 48;
+			e = (int)lpg_ppm / 10;
+			e %= 10;
+			e += 48;
+			f = (int)lpg_ppm % 10;
+			f += 48;
+			UARTCharPut(PC_UART, a);
+			UARTCharPut(PC_UART, b);
+			UARTCharPut(PC_UART, c);
+			UARTCharPut(PC_UART, d);
+			UARTCharPut(PC_UART, e);
+			UARTCharPut(PC_UART, f);
+			UARTSend(PC_UART, "ppm\r\n", 5);
+			UARTSend(PC_UART, "Alcohol: ", 9);
+			a = (int)alcohol_ppm / 100000;
+			a %= 10;
+			a += 48;
+			b = (int)alcohol_ppm / 10000;
+			b %= 10;
+			b += 48;
+			c = (int)alcohol_ppm / 1000;
+			c %= 10;
+			c += 48;
+			d = (int)alcohol_ppm / 100;
+			d %= 10;
+			d += 48;
+			e = (int)alcohol_ppm / 10;
+			e %= 10;
+			e += 48;
+			f = (int)alcohol_ppm % 10;
+			f += 48;
+			UARTCharPut(PC_UART, a);
+			UARTCharPut(PC_UART, b);
+			UARTCharPut(PC_UART, c);
+			UARTCharPut(PC_UART, d);
+			UARTCharPut(PC_UART, e);
+			UARTCharPut(PC_UART, f);
+			UARTSend(PC_UART, "ppm\r\n\r\n", 7);
+    	}
+    }else if(test == BATTERY_TEST){
+    	while(1){
+    		SysCtlDelay(F_CPU); // Delay 3s
+    		updateBatteryPercent();
+    		UARTSend(PC_UART, "Battery: ", 9);
+    		char a = battery_percent / 100;
+			a %= 10;
+			a += 48;
+			char b = battery_percent / 10;
+			b %= 10;
+			b += 48;
+			char c = battery_percent;
+			c %= 10;
+			c += 48;
+			char d = ((int)(battery_percent * 10)) % 10;
+			d += 48;
+			UARTCharPut(PC_UART, a);
+			UARTCharPut(PC_UART, b);
+			UARTCharPut(PC_UART, c);
+			UARTCharPut(PC_UART, '.');
+			UARTCharPut(PC_UART, d);
+			UARTSend(PC_UART, "%\r\n", 3);
+    	}
+    }else if(test == POWER_TEST){
+    	while(1){
+    		if(UARTCharsAvail(PC_UART)){
+				a = UARTCharGet(PC_UART);
+				switch(a){
+					case '1':
+						setDimmerValue(1, 0);
+						break;
+					case '2':
+						setDimmerValue(1, 100);
+						break;
+					case '9':
+						setDimmerValue(2, 0);
+						break;
+					case '0':
+						setDimmerValue(2, 100);
+						break;
+					default:
+						break;
+				}
+
+    		}
+    	}
+    }else if(test == MISC_TEST){
+    	while(1){
+    		if(UARTCharsAvail(PC_UART)){
+				a = UARTCharGet(PC_UART);
+				switch(a){
+					case '0':
+						GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+						GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, 0);
+						break;
+					case '1':
+						GPIOPinWrite(GPIO_PORTF_BASE, PWM, PWM);
+						GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, DIMMER_PIN);
+						break;
+					default: break;
+				}
+    		}
+    	}
+    }else{
+    	//Test type was not defined.
+        while(1){
+        	SysCtlDelay(F_CPU/2);
+        	GPIOPinWrite(GPIO_PORTF_BASE, GREEN_LED|RED_LED|BLUE_LED, RED_LED);
+        	SysCtlDelay(F_CPU/2);
+        	GPIOPinWrite(GPIO_PORTF_BASE, GREEN_LED|RED_LED|BLUE_LED, 0);
+        }
+    }
+}
+
+
+//*****************************************************************************
+//
+// The interrupt handler for the first timer interrupt.
+//
+//*****************************************************************************
+
+void Timer0AIntHandler(void)
+{
+	if(device == HVAC_DEVICE){
+		if(pwmState == 1){
+			GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+			pwmState = 0;
+			TimerLoadSet(TIMER0_BASE, TIMER_A, lowPulse);
+		}else{
+			GPIOPinWrite(GPIO_PORTF_BASE, PWM, PWM);
+			pwmState = 1;
+			TimerLoadSet(TIMER0_BASE, TIMER_A, highPulse);
+		}
+
+		//
+		// Clear the timer interrupt.
+		//
+		TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+		TimerEnable(TIMER0_BASE, TIMER_A);
+	}else if(device == POWER_DEVICE){
+		if(ZCrossWaiting){
+			ZCrossWaiting = 0;
+			GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+			pwmState = 0;
+			TimerLoadSet(TIMER0_BASE, TIMER_A, lowPulse);
+
+
+			GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, 0);
+			dimmerState = 0;
+			TimerLoadSet(TIMER1_BASE, TIMER_A, lowPulseDimmer);
+
+			//
+			// Clear the timer interrupt.
+			//
+			TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+			TimerEnable(TIMER0_BASE, TIMER_A);
+
+			//
+			// Clear the timer interrupt.
+			//
+			TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+			TimerEnable(TIMER1_BASE, TIMER_A);
+		}else{
+			if(pwmState == 0){
+				GPIOPinWrite(GPIO_PORTF_BASE, PWM, PWM);
+				pwmState = 1;
+				TimerLoadSet(TIMER0_BASE, TIMER_A, highPulse);
+				//
+				// Clear the timer interrupt.
+				//
+				TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+				TimerEnable(TIMER0_BASE, TIMER_A);
+			}else{
+				GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+				pwmState = 0;
+			}
+		}
+	}
+}
+
+//*****************************************************************************
+//
+// The interrupt handler for the first timer interrupt.
+//
+//*****************************************************************************
+
+void Timer1AIntHandler(void){
+	if(dimmerState == 0){
+		GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, DIMMER_PIN);
+		dimmerState = 1;
+		TimerLoadSet(TIMER1_BASE, TIMER_A, highPulseDimmer);
+		//
+		// Clear the timer interrupt.
+		//
+		TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+		TimerEnable(TIMER1_BASE, TIMER_A);
+	}else{
+		GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, 0);
+		dimmerState = 0;
+	}
+}
+
+void IntGPIOAHandler(void){
+	TimerDisable(TIMER0_BASE, TIMER_A);
+
+	TimerLoadSet(TIMER0_BASE, TIMER_A, ZCrossDelay);
+	ZCrossWaiting = 1;
+
+	TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+	TimerEnable(TIMER0_BASE, TIMER_A);
+
+	GPIOPinIntClear(GPIO_PORTA_BASE, ZCROSS_PIN);
+}
+
+void IntGPIODHandler(void){
+	UARTSend(PC_UART, "Occupied!\r\n", 11);
+	packData("WD", OCCUPANCY_IDENTIFIER, BOOLEAN_IDENTIFIER);
+	sendToXbee(jsonFrame);
+	GPIOPinIntClear(GPIO_PORTD_BASE, PIR);
+}
+
+// Initialize clocks, peripherals and pins.
+void init(){
+	IntMasterDisable();
+	// Initialize clocks
+	SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
+				   SYSCTL_XTAL_16MHZ);
+
+	if (device == HVAC_DEVICE){
+		ulPeriod = (SysCtlClockGet() / 50); //20ms Period
+		minDutyCycle = ulPeriod * 0.05; //1ms Min Pulse
+		maxDutyCycle = ulPeriod * 0.1; //2ms Max Pulse
+		dutyCycle = minDutyCycle + (maxDutyCycle - minDutyCycle) / 2; //50% duty cycle for servo
+		highPulse = dutyCycle;
+		lowPulse = ulPeriod - dutyCycle;
+	}else if(device == POWER_DEVICE){
+		ulPeriod = (SysCtlClockGet() / 120);
+		minDutyCycle = 0;
+		maxDutyCycle = ulPeriod;
+		highPulse = 0;
+		highPulseDimmer = 0;
+		lowPulse = ulPeriod;
+		lowPulseDimmer = ulPeriod;
+		ZCrossDelay = (SysCtlClockGet() * 0.001125); //1.125ms Delay in Zero-cross detector
+	}
+
+	// LEDs
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, RED_LED|BLUE_LED|GREEN_LED);
+
+	// GPIO
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, RTS);
+	GPIOPinWrite(GPIO_PORTD_BASE, RTS, RTS);
+	GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, RST);
+	GPIOPinWrite(GPIO_PORTD_BASE, RST, RST);
+	GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, CTS);
+	if (device == HVAC_DEVICE){
+		GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, PIR);
+		GPIOPortIntRegister(GPIO_PORTA_BASE, IntGPIODHandler);
+		GPIOPinIntClear(GPIO_PORTD_BASE, PIR);
+		GPIOIntTypeSet(GPIO_PORTD_BASE, PIR, GPIO_FALLING_EDGE);
+		GPIOPinIntEnable(GPIO_PORTD_BASE, PIR);
+		GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, PWM);
+		GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+	}else if(device == POWER_DEVICE){
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+		GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, PWM);
+		GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, DIMMER_PIN);
+		GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+		GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, 0);
+		GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, ZCROSS_PIN);
+		GPIOPortIntRegister(GPIO_PORTA_BASE, IntGPIOAHandler);
+		GPIOPinIntClear(GPIO_PORTA_BASE, ZCROSS_PIN);
+		GPIOIntTypeSet(GPIO_PORTA_BASE, ZCROSS_PIN, GPIO_FALLING_EDGE);
+		GPIOPinIntEnable(GPIO_PORTA_BASE, ZCROSS_PIN);
+	}
+
+	// PC UART
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	GPIOPinConfigure(GPIO_PA0_U0RX);
+	GPIOPinConfigure(GPIO_PA1_U0TX);
+    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    UARTConfigSetExpClk(PC_UART, SysCtlClockGet(), 9600,
+                           (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                            UART_CONFIG_PAR_NONE));
+
+	// XBEE UART
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	GPIOPinConfigure(GPIO_PB0_U1RX);
+	GPIOPinConfigure(GPIO_PB1_U1TX);
+    GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    UARTConfigSetExpClk(XBEE_UART, SysCtlClockGet(), 9600,
+                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                             UART_CONFIG_PAR_NONE));
+
+    if(device == HVAC_DEVICE){
+		//
+		// Enable the peripherals used by this example.
+		//
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+		SysCtlDelay(F_CPU/10);
+
+		//
+		// Configure the 32-bit periodic timer.
+		//
+		TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+		TimerLoadSet(TIMER0_BASE, TIMER_A, lowPulse);
+    }else if((device == POWER_DEVICE) && (test != MISC_TEST)){
+    	/*
+		//
+		// Enable the peripherals used by this example.
+		//
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+		SysCtlDelay(F_CPU/10);
+
+		//
+		// Configure the 32-bit periodic timer.
+		//
+		TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+		TimerLoadSet(TIMER0_BASE, TIMER_A, highPulse);
+
+		//
+		// Enable the peripherals used by this example.
+		//
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+		SysCtlDelay(F_CPU/10);
+
+		//
+		// Configure the 32-bit periodic timer.
+		//
+		TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+		TimerLoadSet(TIMER1_BASE, TIMER_A, highPulseDimmer);
+		*/
+    }
+
+    if(device == GAS_DEVICE){
+		//enable the adc0 peripheral.
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+
+		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+
+		GPIOPinTypeADC(GPIO_PORTE_BASE, CO_ADC);
+		GPIOPinTypeADC(GPIO_PORTE_BASE, LPG_ADC);
+		GPIOPinTypeADC(GPIO_PORTE_BASE, Alcohol_ADC);
+
+		//set the speed to 1msps.
+		SysCtlADCSpeedSet(SYSCTL_ADCSPEED_1MSPS);
+		//set the auto average to 64.
+		ADCHardwareOversampleConfigure(ADC0_BASE, 64);
+		//before setting up, we must disable sequence 1.
+		ADCSequenceDisable(ADC0_BASE, 1);
+		//set the sequence to use (adc0 sequence 1).
+		ADCSequenceConfigure(ADC0_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
+		//set up the sequence steps.
+		ADCSequenceStepConfigure(ADC0_BASE, 1, 0, ADC_CTL_CH0);
+		ADCSequenceStepConfigure(ADC0_BASE, 1, 1, ADC_CTL_CH1);
+		//set up the last step and start an interrupt when the conversion is over.
+		ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_CH2 | ADC_CTL_IE | ADC_CTL_END);
+		//enable the sequence again!
+		ADCSequenceEnable(ADC0_BASE, 1);
+    }
+
+    if(device == HVAC_DEVICE){
+		// Configure I2C
+		I2CSetup(I2C0_MASTER_BASE, 0); // 100Kbps
+
+		//
+		// Setup the interrupts for the timer timeouts.
+		//
+		TimerIntRegister(TIMER0_BASE, TIMER_A, Timer0AIntHandler);
+
+		//
+		// Enable the timers.
+		//
+		TimerEnable(TIMER0_BASE, TIMER_A);
+
+		IntEnable(INT_TIMER0A);
+		TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+    }else if((device == POWER_DEVICE) && (test != MISC_TEST)){
+    	/*
+		//
+		// Setup the interrupts for the timer timeouts.
+		//
+		TimerIntRegister(TIMER0_BASE, TIMER_A, Timer0AIntHandler);
+		IntEnable(INT_TIMER0A);
+		TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+
+		//
+		// Setup the interrupts for the timer timeouts.
+		//
+		TimerIntRegister(TIMER1_BASE, TIMER_A, Timer1AIntHandler);
+		IntEnable(INT_TIMER1A);
+		TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+		*/
+    }
+
+	//
+	// Enable processor interrupts.
+	//
+	IntMasterEnable();
+
+}
+
+//Handle a PN packet received
+int pingReceived(){
+	updateBatteryPercent();
+	packData("WD", BATTERY_PERCENT_IDENTIFIER, FLOAT_IDENTIFIER);
+	sendToXbee(jsonFrame);
+	return 1;
+}
+
+//Handle a RD packet received
+int readDataReceived(){
+	int identifier = -1;
+	char dataName[32];
+    r = getChild(tokens, jsonFrame, "name", "data", dataName);
+	if(r){
+		if(0 == strcmp(dataName, "OCCUPANCY")) identifier = OCCUPANCY_IDENTIFIER;
+		else if(0 == strcmp(dataName, "TEMPERATURE")) identifier = TEMPERATURE_IDENTIFIER;
+		else if(0 == strcmp(dataName, "SERVO ANGLE")) identifier = SERVO_ANGLE_IDENTIFIER;
+		else if(0 == strcmp(dataName, "CO PPM")) identifier = CO_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "LPG PPM")) identifier = LPG_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "ALCOHOL PPM")) identifier = ALCOHOL_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "BATTERY PERCENT")) identifier = BATTERY_PERCENT_IDENTIFIER;
+		else if(0 == strcmp(dataName, "DIMMER 1 PERCENT")) identifier = DIMMER_1_IDENTIFIER;
+		else if(0 == strcmp(dataName, "DIMMER 2 PERCENT")) identifier = DIMMER_2_IDENTIFIER;
+		else{
+			UARTSend(PC_UART, "Incorrect Data Identifier!\r\n", 28);
+			return 0;
+		}
+	}else{
+		UARTSend(PC_UART, "No Child!\r\n", 11);
+		return 0;
+	}
+
+	switch(identifier){
+		case OCCUPANCY_IDENTIFIER:
+			if(device == HVAC_DEVICE){
+				updateOccupancy();
+				packData("WD", OCCUPANCY_IDENTIFIER, BOOLEAN_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case TEMPERATURE_IDENTIFIER:
+			if(device == HVAC_DEVICE){
+				updateTemperature();
+				packData("WD", TEMPERATURE_IDENTIFIER, FLOAT_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case SERVO_ANGLE_IDENTIFIER:
+			if(device == HVAC_DEVICE){
+				packData("WD", SERVO_ANGLE_IDENTIFIER, INTEGER_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case CO_PPM_IDENTIFIER:
+			if(device == GAS_DEVICE){
+				packData("WD", CO_PPM_IDENTIFIER, FLOAT_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case LPG_PPM_IDENTIFIER:
+			if(device == GAS_DEVICE){
+				packData("WD", LPG_PPM_IDENTIFIER, FLOAT_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case ALCOHOL_PPM_IDENTIFIER:
+			if(device == GAS_DEVICE){
+				packData("WD", ALCOHOL_PPM_IDENTIFIER, FLOAT_IDENTIFIER);
+				sendToXbee(jsonFrame);
+			}
+			break;
+		case BATTERY_PERCENT_IDENTIFIER:
+			updateBatteryPercent();
+			packData("WD", BATTERY_PERCENT_IDENTIFIER, FLOAT_IDENTIFIER);
+			sendToXbee(jsonFrame);
+			break;
+		case DIMMER_1_IDENTIFIER:
+			packData("WD", DIMMER_1_IDENTIFIER, INTEGER_IDENTIFIER);
+			sendToXbee(jsonFrame);
+			break;
+		case DIMMER_2_IDENTIFIER:
+			packData("WD", DIMMER_2_IDENTIFIER, INTEGER_IDENTIFIER);
+			sendToXbee(jsonFrame);
+			break;
+		default:
+			UARTSend(PC_UART, "lolwut\r\n", 8);
+			break;
+	}
+	return 1;
+}
+
+/* Packs a JSON message using the following format:
+{
+    "message": {
+        "type": "message_type",
+        "id": "message_id"
+    },
+    "network": {
+        "id": "network_id"
+    },
+    "routing": {
+        "from_high": "routing_from_high",
+        "from_low": "routing_from_low",
+        "to_high": "routing_to_high",
+        "to_low": "routing_to_low"
+    },
+    "data": {
+        "name": "name_string",
+        "type": "data_type",
+        "bytes": "bytes"
+    }
+}
+*/
+void packData(char * messageType, int dataName, int dataType){
+	myPacketID++;
+
+	strcpy(jsonFrame, "{\"message\":{\"type\":\"");
+	strcat(jsonFrame, messageType);
+
+	strcat(jsonFrame, "\",\"id\":\"");
+	strcat(jsonFrame, intToString(myPacketID));
+
+	strcat(jsonFrame, "\"},\"network\":{\"id\":\"");
+	strcat(jsonFrame, PAN_ID);
+	strcat(jsonFrame, "\"},\"routing\":{\"from_high\":\"");
+	strcat(jsonFrame, SH);
+	strcat(jsonFrame, "\",\"from_low\":\"");
+	strcat(jsonFrame, SL);
+
+	strcat(jsonFrame, "\",\"to_high\":\"");
+	strcat(jsonFrame, "000000");
+	strcat(jsonFrame, "\",\"to_low\":\"");
+	strcat(jsonFrame, "00000000");
+
+	strcat(jsonFrame, "\"},\"data\":{\"name\":\"");
+
+	if(messageType[0] == 'R' && messageType[1] == 'N'){
+		switch(dataName){
+			case OCCUPANCY_IDENTIFIER:
+			case TEMPERATURE_IDENTIFIER:
+			case CO_PPM_IDENTIFIER:
+			case LPG_PPM_IDENTIFIER:
+			case ALCOHOL_PPM_IDENTIFIER:
+			case BATTERY_PERCENT_IDENTIFIER: strcat(jsonFrame,"SENSOR"); break;
+			case ADDRESS_IDENTIFIER: strcat(jsonFrame, "ADDRESS"); break;
+			case SERVO_ANGLE_IDENTIFIER:
+			case DIMMER_1_IDENTIFIER:
+			case DIMMER_2_IDENTIFIER: strcat(jsonFrame, "ACTUATOR"); break;
+			default: strcat(jsonFrame, "ERROR");
+		}
+	}else{
+		switch(dataName){
+			case OCCUPANCY_IDENTIFIER: strcat(jsonFrame, "OCCUPANCY"); break;
+			case TEMPERATURE_IDENTIFIER: strcat(jsonFrame, "TEMPERATURE"); break;
+			case SERVO_ANGLE_IDENTIFIER: strcat(jsonFrame, "SERVO ANGLE"); break;
+			case CO_PPM_IDENTIFIER: strcat(jsonFrame, "CO PPM"); break;
+			case LPG_PPM_IDENTIFIER: strcat(jsonFrame, "LPG PPM"); break;
+			case ALCOHOL_PPM_IDENTIFIER: strcat(jsonFrame, "ALCOHOL PPM"); break;
+			case BATTERY_PERCENT_IDENTIFIER: strcat(jsonFrame, "BATTERY PERCENT"); break;
+			case ADDRESS_IDENTIFIER: strcat(jsonFrame, "ADDRESS"); break;
+			case DIMMER_1_IDENTIFIER: strcat(jsonFrame, "DIMMER 1 PERCENT"); break;
+			case DIMMER_2_IDENTIFIER: strcat(jsonFrame, "DIMMER 2 PERCENT"); break;
+			default: strcat(jsonFrame, "ERROR");
+		}
+	}
+
+	strcat(jsonFrame, "\",\"type\":\"");
+	switch(dataType){
+		case BOOLEAN_IDENTIFIER: strcat(jsonFrame, "BOOLEAN"); break;
+		case INTEGER_IDENTIFIER: strcat(jsonFrame, "INTEGER"); break;
+		case FLOAT_IDENTIFIER: strcat(jsonFrame, "FLOAT"); break;
+		case STRING_IDENTIFIER: strcat(jsonFrame, "STRING"); break;
+		default: strcat(jsonFrame, "ERROR");
+	}
+
+	strcat(jsonFrame, "\",\"bytes\":\"");
+	if(messageType[0] == 'R' && messageType[1] == 'N'){
+		switch(dataName){
+			case OCCUPANCY_IDENTIFIER: strcat(jsonFrame, "OCCUPANCY"); break;
+			case TEMPERATURE_IDENTIFIER: strcat(jsonFrame, "TEMPERATURE"); break;
+			case SERVO_ANGLE_IDENTIFIER: strcat(jsonFrame, "SERVO ANGLE"); break;
+			case CO_PPM_IDENTIFIER: strcat(jsonFrame, "CO PPM"); break;
+			case LPG_PPM_IDENTIFIER: strcat(jsonFrame, "LPG PPM"); break;
+			case ALCOHOL_PPM_IDENTIFIER: strcat(jsonFrame, "ALCOHOL PPM"); break;
+			case BATTERY_PERCENT_IDENTIFIER: strcat(jsonFrame, "BATTERY PERCENT"); break;
+			case ADDRESS_IDENTIFIER: strcat(jsonFrame, SH); strcat(jsonFrame, SL); break;
+			case DIMMER_1_IDENTIFIER: strcat(jsonFrame, "DIMMER 1 PERCENT"); break;
+			case DIMMER_2_IDENTIFIER: strcat(jsonFrame, "DIMMER 2 PERCENT"); break;
+			default: strcat(jsonFrame, "ERROR");
+		}
+	}else{
+		switch(dataName){
+			case OCCUPANCY_IDENTIFIER: strcat(jsonFrame, booleanToString(occupancy)); break;
+			case TEMPERATURE_IDENTIFIER: strcat(jsonFrame, floatToString(fahrenheit)); break;
+			case SERVO_ANGLE_IDENTIFIER: strcat(jsonFrame, intToString(servo_angle)); break;
+			case CO_PPM_IDENTIFIER: strcat(jsonFrame, floatToString(co_ppm)); break;
+			case LPG_PPM_IDENTIFIER: strcat(jsonFrame, floatToString(lpg_ppm)); break;
+			case ALCOHOL_PPM_IDENTIFIER: strcat(jsonFrame, floatToString(alcohol_ppm)); break;
+			case BATTERY_PERCENT_IDENTIFIER: strcat(jsonFrame, floatToString(battery_percent)); break;
+			case ADDRESS_IDENTIFIER: strcat(jsonFrame, SH); strcat(jsonFrame, SL); break;
+			case DIMMER_1_IDENTIFIER: strcat(jsonFrame, intToString(dimmer_1_percent)); break;
+			case DIMMER_2_IDENTIFIER: strcat(jsonFrame, intToString(dimmer_2_percent)); break;
+			default: strcat(jsonFrame, "ERROR");
+		}
+	}
+	strcat(jsonFrame, "\"");
+	strcat(jsonFrame, "}}\0");
+}
+
+// Converts a given boolean to a String
+char * booleanToString(int data){
+	if(data){
+		return "TRUE\0";
+	}else{
+		return "FALSE\0";
+	}
+}
+
+// Converts a given integer to a String
+char * intToString(int data){
+	char toReturn[11] = "0000000000\0";
+	int i = 0;
+	for(i = 0; i < 10; i++){
+		toReturn[9-i] = 48 + (data%10);
+		data /= 10;
+	}
+	return toReturn;
+}
+
+// Converts a given float to a String in the form XX.XXX
+char * floatToString(float data){
+	char toReturn[7] = "000000\0";
+	data *= 100;
+	toReturn[5] = 48 + ((int)data % 10);
+	data /= 10;
+	toReturn[4] = 48 + ((int)data % 10);
+	toReturn[3] = '.';
+	data /= 10;
+	toReturn[2] = 48 + ((int)data % 10);
+	data /= 10;
+	toReturn[1] = 48 + ((int)data % 10);
+	data /= 10;
+	toReturn[0] = 48 + ((int)data % 10);
+
+	return toReturn;
+}
+
+// Converts a given string to an integer
+int stringToInt(char * data){
+	int toReturn = -1;
+
+	int length = 0;
+	for(length = 0; length < 32; length++){
+		if(data[length] == '\0'){
+			break;
+		}
+	}
+
+	int i = 0;
+	for(i = 0; i <= length; i++){
+		toReturn += (data[length-i] - 48);
+		toReturn *= 10;
+	}
+
+	return toReturn;
+}
+
+//Handle a RN packet received
+int registerNodeReceived(){
+	connected = 1;
+	return 1;
+}
+
+//Handle an AK packet received
+int ACKReceived(){
+	return 1;
+}
+
+//Handle a WD packet received
+int writeDataReceived(){
+	int identifier = -1;
+	char dataName[32] = "DEADBEEFDEADBEEFDEADBEEFDEADBEEF";
+	char data[32] = "DEADBEEFDEADBEEFDEADBEEFDEADBEEF";
+	r = getChild(tokens, jsonFrame, "name", "data", dataName);
+	if(r){
+		if(0 == strcmp(dataName, "OCCUPANCY")) identifier = OCCUPANCY_IDENTIFIER;
+		else if(0 == strcmp(dataName, "TEMPERATURE")) identifier = TEMPERATURE_IDENTIFIER;
+		else if(0 == strcmp(dataName, "SERVO ANGLE")) identifier = SERVO_ANGLE_IDENTIFIER;
+		else if(0 == strcmp(dataName, "CO PERCENT")) identifier = CO_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "LPG PERCENT")) identifier = LPG_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "ALCOHOL PERCENT")) identifier = ALCOHOL_PPM_IDENTIFIER;
+		else if(0 == strcmp(dataName, "BATTERY PERCENT")) identifier = BATTERY_PERCENT_IDENTIFIER;
+		else if(0 == strcmp(dataName, "DIMMER 1 PERCENT")) identifier = DIMMER_1_IDENTIFIER;
+		else if(0 == strcmp(dataName, "DIMMER 2 PERCENT")) identifier = DIMMER_2_IDENTIFIER;
+		else{
+			UARTSend(PC_UART, "Incorrect Data Identifier!\r\n", 28);
+			return 0;
+		}
+	}else{
+		UARTSend(PC_UART, "No Child!\r\n", 11);
+		return 0;
+	}
+
+	switch(identifier){
+		case OCCUPANCY_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case TEMPERATURE_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case SERVO_ANGLE_IDENTIFIER:
+			if(device == HVAC_DEVICE){
+				r = getChild(tokens, jsonFrame, "bytes", "data", data);
+				if(r){
+					UARTSend(PC_UART, "Updating Servo Angle to ", 24);
+					UARTSend(PC_UART, data, strlen(data));
+					UARTSend(PC_UART, "\r\n", 2);
+					setServoAngle(atoi(data));
+				}else{
+					UARTSend(PC_UART, "No Child\r\n", 10);
+				}
+			}
+			break;
+		case CO_PPM_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case LPG_PPM_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case ALCOHOL_PPM_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case BATTERY_PERCENT_IDENTIFIER:
+			UARTSend(PC_UART, "Attempt to set Read-only\r\n", 25);
+			return 0;
+		case DIMMER_1_IDENTIFIER:
+			if(device == POWER_DEVICE){
+				r = getChild(tokens, jsonFrame, "bytes", "data", data);
+				setDimmerValue(1, atoi(data));
+			}
+			return 0;
+		case DIMMER_2_IDENTIFIER:
+			if(device == POWER_DEVICE){
+				r = getChild(tokens, jsonFrame, "bytes", "data", data);
+				setDimmerValue(2, atoi(data));
+			}
+			return 0;
+		default:
+			UARTSend(PC_UART, "lolwut\r\n", 8);
+			return 0;
+	}
+	return 1;
+}
+
+/*
+//Make 16-bit XOR checksum
+void makeChecksum(){
+	short toCheck = ((frame[0] * 256) + frame[1]);
+
+	int i;
+	for(i = 0; i < frameSize-2; i+=2){
+		toCheck ^= ((frame[i]*256) + frame[i+1]);
+	}
+
+	frame[frameSize-2] = toCheck >> 8;
+	frame[frameSize-1] = toCheck;
+}
+
+
+//Compute and verify 16-bit XOR checksum
+//Return 1 on success
+int checksum(){
+	short sum = ((frame[frameSize-2] * 256) + frame[frameSize-1]);
+	short toCheck = ((frame[0] * 256) + frame[1]);
+
+	int i;
+	for(i = 0; i < frameSize-2; i+=2){
+		toCheck ^= ((frame[i]*256) + frame[i+1]);
+	}
+
+	if(sum == toCheck){
+		return 1;
+	}else{
+		return 0;
+	}
+}
+*/
+
+//Reset the Xbee device (~2 seconds)
+void resetXbee(){
+	GPIOPinWrite(GPIO_PORTD_BASE, RST, 0);
+	SysCtlDelay(SysCtlClockGet()/3);
+	GPIOPinWrite(GPIO_PORTD_BASE, RST, RST);
+	SysCtlDelay(SysCtlClockGet()/3);
+}
+
+//Send a char array to a given UART port
+void UARTSend(unsigned long ulBase, char *pucBuffer, unsigned long ulCount){
+	if(ulBase == XBEE_UART){
+		GPIOPinWrite(GPIO_PORTD_BASE, RTS, !RTS);
+		while(GPIOPinRead(GPIO_PORTD_BASE, CTS) == CTS);
+	}
+	//
+    // Loop while there are more characters to send.
+    //
+    while(ulCount--){
+        //
+        // Write the next character to the UART.
+        //
+        UARTCharPut(ulBase, *pucBuffer++);
+    }
+    if(ulBase == XBEE_UART){
+    	GPIOPinWrite(GPIO_PORTD_BASE, RTS, RTS);
+    }
+}
+
+// Enter XBEE AT Command Mode
+// Returns 1 on success
+int xbeeCM(){
+    int success = 1;
+    int a = 0;
+	SysCtlDelay(F_CPU);
+	while(UARTCharsAvail(XBEE_UART)){
+		UARTCharGet(XBEE_UART);
+	}
+    UARTSend(XBEE_UART, "+++", 3);
+	SysCtlDelay(F_CPU);
+    while(!UARTCharsAvail(XBEE_UART));
+    a = UARTCharGet(XBEE_UART);
+    if(a != 'O')success = 0;
+    while(!UARTCharsAvail(XBEE_UART));
+    a = UARTCharGet(XBEE_UART);
+    if(a != 'K')success = 0;
+    while(!UARTCharsAvail(XBEE_UART));
+    UARTCharGet(XBEE_UART);
+    return success;
+}
+
+// Gets the address of the attached unit
+// Saves it in LH and SH as hexadecimal
+void xbeeGetAddress(){
+    UARTSend(XBEE_UART, "ATSL\r", 5);
+    int i;
+    for(i = 0; i < 8; i++){
+        while(!UARTCharsAvail(XBEE_UART));
+        SL[i] = UARTCharGet(XBEE_UART);
+    }
+    while(!UARTCharsAvail(XBEE_UART));
+    UARTCharGet(XBEE_UART);
+    while(GPIOPinRead(GPIO_PORTD_BASE, CTS) == CTS);
+    UARTSend(XBEE_UART, "ATSH\r", 5);
+    for(i = 2; i < 8; i++){
+        while(!UARTCharsAvail(XBEE_UART));
+        SH[i] = UARTCharGet(XBEE_UART);
+    }
+    while(!UARTCharsAvail(XBEE_UART));
+    UARTCharGet(XBEE_UART);
+}
+
+// Sends AT Command
+// Returns 1 on success
+int xbeeSendCommand(char * data, unsigned long ulCount){
+    int success = 1;
+    int a = 0;
+    UARTSend(XBEE_UART, data, ulCount);
+    while(!UARTCharsAvail(XBEE_UART));
+    a = UARTCharGet(XBEE_UART);
+    if(a != 'O')success = 0;
+    while(!UARTCharsAvail(XBEE_UART));
+    a = UARTCharGet(XBEE_UART);
+    if(a != 'K')success = 0;
+    while(!UARTCharsAvail(XBEE_UART));
+    UARTCharGet(XBEE_UART);
+    return success;
+}
+
+// Sets the PWM output to a particular integer angle for a servo
+void setServoAngle(int angle){
+	if(angle < 0) angle = 0;
+	if(angle > 90) angle = 90;
+	servo_angle = angle;
+
+	int toAdd = (maxDutyCycle-minDutyCycle) * (angle / 90.0);
+	dutyCycle = minDutyCycle + toAdd;
+	highPulse = dutyCycle;
+	lowPulse = ulPeriod - dutyCycle;
+}
+
+void updateOccupancy(){
+	occupancy = (GPIOPinRead(GPIO_PORTD_BASE, PIR) == PIR);
+}
+
+// Updates the temperature values from the TI I2C sensor.
+void updateTemperature(){
+	char raw[2];
+	int tempRaw;
+	I2CReadData(I2C0_MASTER_BASE, TEMP_IC_ADDR, TEMP_REG_ADDR, raw, 2);
+	tempRaw = ((raw[0] << 8)+raw[1]);
+	tempRaw = tempRaw >> 3;
+	celcius = tempRaw * 0.0625;
+	fahrenheit = ((celcius * 9) / 5) + 32;
+}
+
+// Sends a json string with frameSynch and length added to the front out the Xbee, to the coordinator.
+int sendToXbee(const char* js){
+	IntMasterDisable();
+	int i = 0;
+	for(i = 0; i < 5; i++){
+		UARTCharPut(XBEE_UART, ' ');
+	}
+
+    const int json_length = strlen(js);
+
+    i = 0;
+    for(i = 0; i < 4; i++){
+    	UARTCharPut(XBEE_UART, frameSynch[i]);
+    }
+   	UARTCharPut(XBEE_UART, (char)(json_length>>24));
+   	UARTCharPut(XBEE_UART, (char)(json_length>>16));
+   	UARTCharPut(XBEE_UART, (char)(json_length>>8));
+   	UARTCharPut(XBEE_UART, (char)json_length);
+
+    for(i =0; i<(json_length); i++){
+        UARTCharPut(XBEE_UART, js[i]);
+    }
+
+	for(i = 0; i < 5; i++){
+		UARTCharPut(XBEE_UART, ' ');
+	}
+
+    SysCtlDelay(F_CPU/3);
+
+    IntMasterEnable();
+    return 0;
+}
+
+// Returns a child string from a given json string and parent string
+int getChild(jsmntok_t* tokens, const char* js, char * child, char * parent, char * result){
+    //find value = "child"
+    //if value(parent - 1 of child) == parent
+    //return(value child+1)
+	int i = 0;
+    for(i=0;i<NUMTOKENS;i++){
+        if(tokens[i].type == JSMN_END){
+            return(0); //child not found
+        }
+
+        jsmntok_t* childtoken = &tokens[i];
+        if (tokens[i].parent >= 1 && strncmp(js + childtoken->start, child, strlen(child)) == 0){ //if parent isn't root and current token == child(input)
+            jsmntok_t* parenttoken = &tokens[tokens[i].parent -1]; //set parent token
+            if (strncmp(js + parenttoken->start , parent, strlen(parent)) ==0){
+                char buff[128];
+                buff[0]='\0';
+                strncpy(buff, js + tokens[i+1].start, (tokens[i+1].end - tokens[i+1].start)); //copy value of parent key to buffer
+                buff[(tokens[i+1].end - tokens[i+1].start)] = '\0'; //put null char at end of buffer
+                strcpy(result, buff);
+                return(1); //success!
+            }
+        }
+    }
+    return(0);
+}
+
+// Invalidates the token strings for the json parser
+void initTokens(jsmntok_t* tokens){
+	int i = 0;
+    for(i=0;i<NUMTOKENS;i++){
+        tokens[i].type = JSMN_END;
+        tokens[i].start = -1;
+        tokens[i].end = -1;
+        tokens[i].size = -1;
+        tokens[i].parent = -1;
+    }
+}
+
+// Updates the battery percent
+// Utilizes the Xbee ADC
+// Value is 0-100% for 3-3.3V
+void updateBatteryPercent(){
+	xbeeCM();
+    int a = 0;
+    char data[5];
+    int integerData = 0;
+    UARTSend(XBEE_UART, "AT%V\r", 5);
+    int i = 0;
+    for(i = 0; i < 5; i++){
+    	while(!UARTCharsAvail(XBEE_UART));
+    	a = UARTCharGet(XBEE_UART);
+    	if(a != '\r'){
+    		data[i] = a;
+    	}else{
+    		break;
+    	}
+    }
+    if(i == 1){
+    	integerData = characterFromHex(data[0]);
+    }else if(i == 2){
+    	integerData = (characterFromHex(data[0]) << 4) + characterFromHex(data[1]);
+    }else if(i == 3){
+    	integerData = (characterFromHex(data[0]) << 8) + (characterFromHex(data[1]) << 4) + characterFromHex(data[2]);
+    }else if(i == 4){
+    	integerData = (characterFromHex(data[0]) << 16) + (characterFromHex(data[1]) << 8) + (characterFromHex(data[2]) << 4) + characterFromHex(data[3]);
+    }
+    integerData = (integerData * (1200.0/1024.0)); //Millivolts
+    battery_percent = ((integerData-3000.0) / 300.0) * 100.0; //Percent
+    if(battery_percent > 100){
+    	battery_percent = 100;
+    }else if(battery_percent < 0){
+    	battery_percent = 0;
+    }
+    xbeeSendCommand("ATCN\r", 5);
+}
+
+// Takes an ASCII hex character, returns an int
+int characterFromHex(char data){
+	switch(data){
+		case '0': return 0;
+		case '1': return 1;
+		case '2': return 2;
+		case '3': return 3;
+		case '4': return 4;
+		case '5': return 5;
+		case '6': return 6;
+		case '7': return 7;
+		case '8': return 8;
+		case '9': return 9;
+		case 'A': return 10;
+		case 'B': return 11;
+		case 'C': return 12;
+		case 'D': return 13;
+		case 'E': return 14;
+		case 'F': return 15;
+		default: return -1;
+	}
+}
+
+// Registers the connected sensors
+void sendRegistration(){
+	if(device == HVAC_DEVICE){
+		packData("RN", OCCUPANCY_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+		packData("RN", TEMPERATURE_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+		packData("RN", SERVO_ANGLE_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+	}
+	if(device == GAS_DEVICE){
+		packData("RN", CO_PPM_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+		packData("RN", LPG_PPM_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+		packData("RN", ALCOHOL_PPM_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+	}
+	if(device == POWER_DEVICE){
+		packData("RN", DIMMER_1_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+		packData("RN", DIMMER_2_IDENTIFIER, STRING_IDENTIFIER);
+		sendToXbee(jsonFrame);
+	}
+	packData("RN", BATTERY_PERCENT_IDENTIFIER, STRING_IDENTIFIER);
+	sendToXbee(jsonFrame);
+}
+
+// Updates the PPM values for CO, LPG, and Alcohol
+void updateGasPPM(){
+	float ADCPercent = 0;
+	//clear the interrupt flag
+	ADCIntClear(ADC0_BASE, 1);
+	//trigger the adc conversion process.
+	ADCProcessorTrigger(ADC0_BASE, 1);
+	//wait for the interrupt flag to get set!
+	while(!ADCIntStatus(ADC0_BASE, 1, false));
+	//get the actual data samples from adc0 sequencer 1!
+	ADCSequenceDataGet(ADC0_BASE, 1, ulADC0Value);
+
+	//CO Calc
+	ADCPercent = ulADC0Value[0] / 4096.0;
+	co_ppm = 94.5 * pow(((1.0/ADCPercent)-1.0), -1.538);
+	if(co_ppm < 0) co_ppm = 0;
+
+	//LPG Calc
+	ADCPercent = ulADC0Value[1] / 4096.0;
+	lpg_ppm = 1051 * pow((((22000/ADCPercent)-22000)/20000), -2.435);
+	if(lpg_ppm < 0) lpg_ppm = 0;
+
+	//Alcohol Calc
+	ADCPercent = ulADC0Value[2] / 4096.0;
+	alcohol_ppm = 267.4 * pow(((1.0/ADCPercent)-1.0), -1.546);
+	if(alcohol_ppm < 0) alcohol_ppm = 0;
+}
+
+void setDimmerValue(int ulDimmer, int ulValue){
+	if(ulDimmer == 1){
+		if(ulValue >= 100){
+			GPIOPinWrite(GPIO_PORTF_BASE, PWM, PWM);
+		}else if(ulValue <= 0){
+			GPIOPinWrite(GPIO_PORTF_BASE, PWM, 0);
+		}
+	}else if(ulDimmer == 2){
+		if(ulValue >= 100){
+			GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, DIMMER_PIN);
+		}else if(ulValue <= 0){
+			GPIOPinWrite(GPIO_PORTA_BASE, DIMMER_PIN, 0);
+		}
+	}
+	/*
+	if(ulDimmer == 1){
+		if(ulValue < 0) ulValue = 0;
+		if(ulValue > 100) ulValue = 100;
+
+		dimmer_1_percent = ulValue;
+
+		int toAdd = ((maxDutyCycle-minDutyCycle) * ulValue) / 100;
+		dutyCycle = minDutyCycle + toAdd;
+		highPulse = dutyCycle;
+		lowPulse = ulPeriod - dutyCycle;
+	}else if(ulDimmer == 2){
+		if(ulValue < 0) ulValue = 0;
+		if(ulValue > 100) ulValue = 100;
+
+		dimmer_2_percent = ulValue;
+
+		int toAdd = ((maxDutyCycle-minDutyCycle) * ulValue) / 100;
+		dutyCycle = minDutyCycle + toAdd;
+		highPulseDimmer = dutyCycle;
+		lowPulseDimmer = ulPeriod - dutyCycle;
+	}
+	*/
+}
